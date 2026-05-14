@@ -1,49 +1,29 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 app.use(cors());
 app.use(express.static(path.join(__dirname, '../public')));
-
-// Proxy endpoint — forwards request to Citibike layer API and returns real point data
+const GBFS_INFO = 'https://gbfs.citibikenyc.com/gbfs/en/station_information.json';
+const GBFS_STATUS = 'https://gbfs.citibikenyc.com/gbfs/en/station_status.json';
+function inferPoints(bikes, capacity) {
+  const pct = bikes / (capacity || 1);
+  if (pct >= 0.9) return { pts: 3, action: 'give' };
+  if (pct >= 0.75) return { pts: 2, action: 'give' };
+  if (pct >= 0.6) return { pts: 1, action: 'give' };
+  if (pct <= 0.1) return { pts: -3, action: 'take' };
+  if (pct <= 0.25) return { pts: -2, action: 'take' };
+  if (pct <= 0.4) return { pts: -1, action: 'take' };
+  return { pts: 0, action: 'neutral' };
+}
 app.get('/api/stations', async (req, res) => {
   try {
-    const response = await fetch('https://layer.bicyclesharing.net/map/v1/nyc/stations');
-    if (!response.ok) throw new Error(`Layer API error: ${response.status}`);
-    const data = await response.json();
-
-    // Normalize into a clean flat array
-    const stations = data.features.map(f => {
-      const p = f.properties;
-      const s = p.station;
-      const [lon, lat] = f.geometry.coordinates;
-      return {
-        id: s.id,
-        name: s.name,
-        lat,
-        lon,
-        bikes_available: s.bikes_available,
-        docks_available: s.docks_available,
-        capacity: s.capacity,
-        pts: p.bike_angels_points || 0,
-        action: p.bike_angels_action || 'neutral', // 'give' | 'take' | 'neutral'
-        installed: s.installed,
-        renting: s.renting,
-        returning: s.returning,
-      };
-    }).filter(s => s.installed && s.renting);
-
-    res.json({ stations, updated: Date.now() });
-  } catch (err) {
-    console.error('Station fetch error:', err.message);
-    res.status(502).json({ error: 'Failed to fetch station data', detail: err.message });
-  }
-});
-
-// Health check
-app.get('/api/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
-
-app.listen(PORT, () => console.log(`Bike Angels server running on http://localhost:${PORT}`));
+    const [infoRes, statusRes] = await Promise.all([fetch(GBFS_INFO), fetch(GBFS_STATUS)]);
+    const infoData = await infoRes.json();
+    const statusData = await statusRes.json();
+    const statusMap = {};
+    statusData.data.stations.forEach(s => { statusMap[s.station_id] = s; });
+    const stations = infoData.data.stations.map(s => {
+      const st = statusMap[s.station_id] || {};
+      const bikes = st.num_bikes_available ||
