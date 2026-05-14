@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bike Angels Optimizer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <header id="header">
+      <div class="header-left">
+        <span class="logo">🚲</span>
+        <h1>Bike Angels</h1>
+      </div>
+      <div class="header-right">
+        <span id="last-updated" class="muted"></span>
+        <button id="refresh-btn" class="btn-icon" title="Refresh">↻</button>
+      </div>
+    </header>
+
+    <div id="controls">
+      <button id="locate-btn" class="btn-primary">📍 Use my location</button>
+      <div class="radius-control">
+        <label for="radius">Radius</label>
+        <input type="range" id="radius" min="2" max="20" value="6" step="1" />
+        <span id="radius-val">6 blocks</span>
+      </div>
+    </div>
+
+    <div id="status-bar">
+      <span id="status-text">Loading live station data...</span>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="legend">
+      <span><span class="dot green"></span> Pick up (+pts)</span>
+      <span><span class="dot red"></span> Drop off (−pts)</span>
+      <span><span class="dot amber"></span> Neutral</span>
+      <span class="muted">● Size = point value</span>
+    </div>
+
+    <div id="panels">
+      <div id="cluster-panel">
+        <div class="panel-title">Best clusters nearby</div>
+        <div id="cluster-list"><p class="empty">Loading...</p></div>
+      </div>
+      <div id="station-panel">
+        <div class="panel-title">Stations in cluster</div>
+        <div id="station-list"><p class="empty">Select a cluster →</p></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
